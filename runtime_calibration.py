@@ -136,6 +136,7 @@ def run_runtime_calibration(
     output_dir: str,
     calibration_budget: dict[str, int],
     primary_budget: dict[str, int],
+    development_size: int = 60_000,
 ) -> dict[str, Any]:
     """Train a small calibration batch for both modes on seed 42 only."""
     if calibration_budget["ants"] != 20 or calibration_budget["iterations"] != 1:
@@ -144,7 +145,7 @@ def run_runtime_calibration(
         raise ValueError("Primary budget must retain the paper's 20 ants")
 
     started = time.perf_counter()
-    data = load_mnist(2024, data_dir)
+    data = load_mnist(2024, data_dir, development_size)
 
     def evaluator_factory(experiment):
         return lambda candidate, _experiment: evaluate_candidate(candidate, experiment, data)

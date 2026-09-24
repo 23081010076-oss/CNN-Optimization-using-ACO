@@ -41,6 +41,28 @@ def _stratified_indices(labels: np.ndarray, validation_size: int, seed: int) -> 
     return np.asarray(train_indices), np.asarray(validation_indices)
 
 
+def _stratified_subset(labels: np.ndarray, subset_size: int, seed: int) -> np.ndarray:
+    """Select a deterministic, class-balanced subset from the development set."""
+    if subset_size == len(labels):
+        indices = np.arange(len(labels))
+        np.random.default_rng(seed).shuffle(indices)
+        return indices
+    if not 10 <= subset_size <= len(labels):
+        raise ValueError(f"development_size must be between 10 and {len(labels)}")
+    rng = np.random.default_rng(seed)
+    selected: list[int] = []
+    classes = np.unique(labels)
+    per_class = subset_size // len(classes)
+    remainder = subset_size % len(classes)
+    for position, label in enumerate(classes):
+        indices = np.flatnonzero(labels == label)
+        rng.shuffle(indices)
+        count = per_class + (1 if position < remainder else 0)
+        selected.extend(indices[:count].tolist())
+    rng.shuffle(selected)
+    return np.asarray(selected)
+
+
 def _find_file(data_dir: Path, names: tuple[str, ...], description: str) -> Path:
     candidates = [data_dir / name for name in names]
     for candidate in candidates:
@@ -134,8 +156,12 @@ def _load_idx_dataset(data_dir: Path) -> tuple[np.ndarray, np.ndarray, np.ndarra
     return x_train, y_train, x_test, y_test
 
 
-def load_mnist(dataset_seed: int = 2024, data_dir: str | Path = "data") -> DatasetBundle:
-    """Load local MNIST IDX files and create the fixed 50k/10k/10k split."""
+def load_mnist(
+    dataset_seed: int = 2024,
+    data_dir: str | Path = "data",
+    development_size: int = 60_000,
+) -> DatasetBundle:
+    """Load MNIST, optionally using a stratified subset of development data."""
     data_path = Path(data_dir).expanduser()
     x_full, y_full, x_test, y_test = _load_idx_dataset(data_path)
     if len(x_full) != 60_000 or len(x_test) != 10_000:
@@ -143,9 +169,14 @@ def load_mnist(dataset_seed: int = 2024, data_dir: str | Path = "data") -> Datas
             "This experiment requires the standard MNIST sizes: "
             "60,000 training images and 10,000 test images"
         )
-    train_indices, validation_indices = _stratified_indices(
-        y_full, validation_size=10_000, seed=dataset_seed
+    subset_indices = _stratified_subset(y_full, development_size, dataset_seed)
+    subset_labels = y_full[subset_indices]
+    validation_size = 10_000 if development_size == 60_000 else development_size // 5
+    train_relative, validation_relative = _stratified_indices(
+        subset_labels, validation_size=validation_size, seed=dataset_seed
     )
+    train_indices = subset_indices[train_relative]
+    validation_indices = subset_indices[validation_relative]
 
     def prepare(images: np.ndarray) -> np.ndarray:
         return images.astype("float32")[..., np.newaxis] / 255.0
@@ -157,7 +188,10 @@ def load_mnist(dataset_seed: int = 2024, data_dir: str | Path = "data") -> Datas
         y_validation=y_full[validation_indices].astype("int64"),
         x_test=prepare(x_test),
         y_test=y_test.astype("int64"),
-        split_id=f"mnist-stratified-50000-10000-seed-{dataset_seed}",
+        split_id=(
+            f"mnist-stratified-{len(train_indices)}-{len(validation_indices)}-"
+            f"seed-{dataset_seed}"
+        ),
     )
 
 

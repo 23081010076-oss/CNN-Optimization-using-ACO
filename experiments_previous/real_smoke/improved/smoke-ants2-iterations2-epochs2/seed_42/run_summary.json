@@ -1,0 +1,23 @@
+{
+  "run_id": "improved-smoke-ants2-iterations2-epochs2-seed-42",
+  "mode": "improved",
+  "budget_name": "smoke",
+  "seed": 42,
+  "runtime_seconds": 180.52694231,
+  "evaluator_type": "cnn_mnist",
+  "run_status": "success",
+  "failure_reason": "",
+  "effective_ants": 2,
+  "effective_iterations": 2,
+  "effective_max_epochs": 2,
+  "environment": {
+    "python_version": "3.13.15",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "numpy_version": "2.5.3",
+    "tensorflow_version": "2.21.0",
+    "keras_version": "3.15.1"
+  },
+  "trial_count": 4,
+  "failed_trials": 0,
+  "cache_hits": 0
+}

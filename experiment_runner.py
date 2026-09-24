@@ -247,6 +247,9 @@ def _run_one_seed(
         f"iterations{budget['iterations']}-epochs{budget['max_epochs']}-seed-{seed}"
     )
     run_output = output_dir / mode / budget_name / run_id if output_dir else None
+    if run_output is not None and cache_enabled:
+        optimizer.load_disk_cache(run_output / "aco_trials.csv")
+    failure_reason = ""
     try:
         best = optimizer.run()
         status = "success"

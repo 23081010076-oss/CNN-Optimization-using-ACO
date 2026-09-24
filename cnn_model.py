@@ -19,6 +19,8 @@ def _tensorflow():
 def build_model(configuration: dict[str, Any], mode: str):
     tf = _tensorflow()
     layers = tf.keras.layers
+    dense_units_1 = min(int(configuration["dense_units_1"]), 512)
+    dense_units_2 = min(int(configuration["dense_units_2"]), 512)
 
     model = tf.keras.Sequential(
         [
@@ -30,9 +32,9 @@ def build_model(configuration: dict[str, Any], mode: str):
             layers.MaxPooling2D((2, 2)),
             layers.Flatten(),
             layers.BatchNormalization(),
-            layers.Dense(configuration["dense_units_1"], activation=configuration["activation"]),
+            layers.Dense(dense_units_1, activation=configuration["activation"]),
             layers.Dropout(configuration["dropout_2"]),
-            layers.Dense(configuration["dense_units_2"], activation=configuration["activation"]),
+            layers.Dense(dense_units_2, activation=configuration["activation"]),
             layers.Dense(10, activation="softmax"),
         ]
     )
@@ -65,10 +67,15 @@ def build_model(configuration: dict[str, Any], mode: str):
         if mode == "improved"
         else configuration.get("loss", "sparse_categorical_crossentropy")
     )
+    metric = "accuracy" if mode == "improved" else (
+        "sparse_categorical_accuracy"
+        if loss == "sparse_categorical_crossentropy"
+        else "categorical_accuracy"
+    )
     model.compile(
         optimizer=optimizer,
         loss=loss,
-        metrics=["accuracy"],
+        metrics=[metric],
     )
     learning_rate = optimizer.learning_rate
     try:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import platform
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -257,6 +258,14 @@ def _summary(trials: list[dict[str, Any]], primary: dict[str, Any]) -> dict[str,
             if metadata.get("split_id") is not None
         }
     )
+    train_size = 50_000
+    validation_size = 10_000
+    if split_ids:
+        match = re.search(r"stratified-(\d+)-(\d+)-seed-", split_ids[0])
+        if match:
+            train_size = int(match.group(1))
+            validation_size = int(match.group(2))
+
     return {
         "evaluator_type": primary.get("evaluator_type", "unknown"),
         "trial_count": len(trials),
@@ -293,8 +302,8 @@ def _summary(trials: list[dict[str, Any]], primary: dict[str, Any]) -> dict[str,
         "dataset_protocol": {
             "dataset": "MNIST",
             "dataset_seed": 2024,
-            "train_size": 50000,
-            "validation_size": 10000,
+            "train_size": train_size,
+            "validation_size": validation_size,
             "test_size": 10000,
             "test_used_for_selection": False,
             "split_ids": split_ids,

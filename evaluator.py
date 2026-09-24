@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import platform
 import time
 from typing import Any
@@ -52,6 +53,15 @@ def seed_tensorflow(seed: int, deterministic: bool) -> dict[str, Any]:
     import tensorflow as tf
 
     tf.keras.utils.set_random_seed(seed)
+    try:
+        tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
+    except (AttributeError, RuntimeError):
+        pass
+    try:
+        for gpu in tf.config.list_physical_devices("GPU"):
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except (AttributeError, RuntimeError):
+        pass
     warning = ""
     effective = False
     if deterministic:
@@ -68,7 +78,10 @@ def seed_tensorflow(seed: int, deterministic: bool) -> dict[str, Any]:
 
 
 def _history_best(history: dict[str, list[float]]) -> tuple[int, float, float]:
-    accuracies = history.get("val_sparse_categorical_accuracy", history.get("val_accuracy", []))
+    accuracies = history.get(
+        "val_sparse_categorical_accuracy",
+        history.get("val_categorical_accuracy", history.get("val_accuracy", [])),
+    )
     losses = history.get("val_loss", [])
     if not accuracies or len(losses) != len(accuracies):
         raise ValueError("Training history did not contain validation accuracy")
@@ -80,7 +93,10 @@ def _history_best(history: dict[str, list[float]]) -> tuple[int, float, float]:
 
 
 def _training_accuracy(history: dict[str, list[float]], epoch: int) -> float:
-    accuracies = history.get("sparse_categorical_accuracy", history.get("accuracy", []))
+    accuracies = history.get(
+        "sparse_categorical_accuracy",
+        history.get("categorical_accuracy", history.get("accuracy", [])),
+    )
     if len(accuracies) < epoch:
         raise ValueError("Training history did not contain training accuracy")
     return float(accuracies[epoch - 1])
@@ -92,6 +108,23 @@ def _semantic_warning(configuration: dict[str, Any], mode: str) -> str:
     ) != "sparse_categorical_crossentropy":
         return "nonstandard_loss_for_multiclass_sparse_labels"
     return ""
+
+
+def _labels_for_loss(labels: np.ndarray, configuration: dict[str, Any], mode: str) -> np.ndarray:
+    """Adapt integer MNIST labels for paper losses that require class vectors."""
+    loss = (
+        "sparse_categorical_crossentropy"
+        if mode == "improved"
+        else configuration.get("loss", "sparse_categorical_crossentropy")
+    )
+    if loss == "sparse_categorical_crossentropy":
+        return labels
+    return np.eye(10, dtype=np.float32)[np.asarray(labels, dtype=np.int64)]
+
+
+def _training_batch_size(configuration: dict[str, Any]) -> int:
+    """Keep large paper candidates within the available laptop-GPU memory."""
+    return min(int(configuration["batch_size"]), 32)
 
 
 def _evaluation_metadata(
@@ -151,10 +184,13 @@ def evaluate_candidate(
         )
         history = model.fit(
             data.x_train,
-            data.y_train,
-            validation_data=(data.x_validation, data.y_validation),
+            _labels_for_loss(data.y_train, configuration, experiment.mode),
+            validation_data=(
+                data.x_validation,
+                _labels_for_loss(data.y_validation, configuration, experiment.mode),
+            ),
             epochs=experiment.max_epochs,
-            batch_size=configuration["batch_size"],
+            batch_size=_training_batch_size(configuration),
             callbacks=[callback],
             verbose=0,
         )
@@ -192,6 +228,17 @@ def evaluate_candidate(
                 "actual_epochs_completed": None,
             },
         )
+    finally:
+        try:
+            import tensorflow as tf
+
+            try:
+                tf.keras.backend.clear_session(free_memory=True)
+            except TypeError:
+                tf.keras.backend.clear_session()
+            gc.collect()
+        except (ImportError, AttributeError, RuntimeError):
+            gc.collect()
 
 
 def train_final_model(
@@ -201,13 +248,11 @@ def train_final_model(
     best_epoch: int,
     output_path: str,
 ) -> dict[str, Any]:
-    """Train a new model on 60,000 development images and evaluate once on test."""
+    """Train on all selected development images and evaluate once on test."""
     started = time.perf_counter()
     development_size = len(data.x_train) + len(data.x_validation)
-    if development_size != 60_000:
-        raise ValueError(
-            "Final retraining requires exactly 60,000 training-development images"
-        )
+    if development_size < 10:
+        raise ValueError("Final retraining requires at least 10 development images")
     if len(data.x_test) != 10_000:
         raise ValueError("Final evaluation requires exactly 10,000 test images")
     seed = trial_seed(experiment.run_seed, experiment.mode, configuration)
@@ -217,13 +262,17 @@ def train_final_model(
     y_development = np.concatenate([data.y_train, data.y_validation], axis=0)
     model.fit(
         x_development,
-        y_development,
+        _labels_for_loss(y_development, configuration, experiment.mode),
         epochs=best_epoch,
-        batch_size=configuration["batch_size"],
+        batch_size=_training_batch_size(configuration),
         shuffle=True,
         verbose=0,
     )
-    loss, accuracy = model.evaluate(data.x_test, data.y_test, verbose=0)
+    loss, accuracy = model.evaluate(
+        data.x_test,
+        _labels_for_loss(data.y_test, configuration, experiment.mode),
+        verbose=0,
+    )
     model.save(output_path)
     return {
         "test_loss": float(loss),

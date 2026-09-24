@@ -50,6 +50,12 @@ def parse_args() -> argparse.Namespace:
         default="data",
         help="Directory containing the local MNIST IDX files (default: data).",
     )
+    parser.add_argument(
+        "--development-size",
+        type=int,
+        default=60_000,
+        help="Number of training-development images; test data remains untouched.",
+    )
     parser.add_argument("--output-dir", default="experiments")
     parser.add_argument(
         "--analyze",
@@ -72,11 +78,29 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run a small real-CNN runtime calibration on each primary mode.",
     )
+    parser.add_argument(
+        "--skip-runtime-check",
+        action="store_true",
+        help="Run primary/final without requiring or validating runtime calibration.",
+    )
+    parser.add_argument(
+        "--require-gpu",
+        action="store_true",
+        help="Fail immediately if TensorFlow cannot see a CUDA GPU.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if args.require_gpu:
+        import tensorflow as tf
+
+        if not tf.config.list_physical_devices("GPU"):
+            raise RuntimeError(
+                "CUDA GPU was requested, but TensorFlow cannot see a GPU. "
+                "Check WSL NVIDIA support and LD_LIBRARY_PATH."
+            )
     if args.calibrate_runtime:
         if args.synthetic:
             raise ValueError("--calibrate-runtime requires real CNN training")
@@ -87,11 +111,12 @@ def main() -> None:
             output_dir=args.output_dir,
             calibration_budget=budget_values("pilot"),
             primary_budget=budget_values("main"),
+            development_size=args.development_size,
         )
         print(f"calibration_report={result['report_path']}")
         print(f"estimated_full_workflow_seconds={result['estimate']['full_workflow_total_seconds']:.1f}")
         return
-    if args.primary or args.final:
+    if (args.primary or args.final) and not args.skip_runtime_check:
         calibration_path = Path(args.output_dir) / "runtime_calibration" / "runtime_calibration_report.json"
         if not calibration_path.is_file():
             raise ValueError(
@@ -132,7 +157,7 @@ def main() -> None:
             from dataset import load_mnist
             from evaluator import evaluate_candidate
 
-            data = load_mnist(2024, args.data_dir)
+            data = load_mnist(2024, args.data_dir, args.development_size)
             evaluator_factory = lambda config: (
                 lambda candidate, _experiment: evaluate_candidate(candidate, config, data)
             )
@@ -187,7 +212,7 @@ def main() -> None:
         from dataset import load_mnist
         from evaluator import evaluate_candidate
 
-        data = load_mnist(config.dataset_seed, args.data_dir)
+        data = load_mnist(config.dataset_seed, args.data_dir, args.development_size)
         evaluator = lambda candidate, experiment: evaluate_candidate(candidate, experiment, data)
 
     optimizer = ACOOptimizer(config, evaluator)

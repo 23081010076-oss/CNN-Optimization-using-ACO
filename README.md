@@ -7,7 +7,8 @@ optimizer, and (in `improved` mode) learning rate.
 
 ## Requirements
 
-- Python 3.10 or newer
+- Python 3.10-3.13 (TensorFlow does not currently provide a Windows wheel for
+  Python 3.14)
 - TensorFlow 2.13 or newer
 - A CPU works for smoke tests and pilots. A CUDA-capable GPU is recommended
   for the full primary experiment.
@@ -22,7 +23,54 @@ If the files are stored elsewhere, pass the location with
 Install dependencies:
 
 ```bash
-python -m pip install -r requirements.txt
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Activate the environment with `.venv\Scripts\Activate.ps1` before running the
+commands below, or prefix each command with `.venv\Scripts\python.exe`.
+
+## Run with NVIDIA CUDA on Windows
+
+The native Windows TensorFlow package does not support CUDA for TensorFlow
+2.11 and newer. This machine has an NVIDIA RTX 4050, so use WSL2 instead:
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+After restarting Windows, run these commands inside Ubuntu:
+
+```bash
+cd /mnt/d/CNN-Optimization-using-ACO
+sudo apt update
+sudo apt install -y python3-venv
+python3 -m venv .venv-linux
+source .venv-linux/bin/activate
+export PATH="$HOME/.local/bin:$PATH"
+uv pip install --python .venv-linux/bin/python -r requirements.txt \
+  "tensorflow[and-cuda]>=2.13"
+export LD_LIBRARY_PATH="$(find \"$VIRTUAL_ENV/lib/python3.13/site-packages/nvidia\" \
+  -type d -name lib -printf '%p:' | sed 's/:$//'):${LD_LIBRARY_PATH:-}"
+python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+```
+
+The last command must print at least one GPU. Run the experiment from the same
+activated WSL2 environment, for example:
+
+```bash
+python ACO.py --mode improved --budget smoke --seed 42 \
+  --data-dir data --cache --output-dir experiments/real_smoke
+```
+
+When opening a new WSL2 terminal, activate the environment and restore the
+CUDA library path before running Python:
+
+```bash
+cd /mnt/d/CNN-Optimization-using-ACO
+source .venv-linux/bin/activate
+export LD_LIBRARY_PATH="$(find \"$VIRTUAL_ENV/lib/python3.13/site-packages/nvidia\" \
+  -type d -name lib -printf '%p:' | sed 's/:$//'):${LD_LIBRARY_PATH:-}"
 ```
 
 ## Verify the code

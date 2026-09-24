@@ -52,6 +52,65 @@ class ACOOptimizer:
         self.global_best: CandidateResult | None = None
         self.run_status = "pending"
 
+    def load_disk_cache(self, path: str | Path) -> int:
+        """Load successful candidate results from a previous trial CSV."""
+        if not self.config.cache_enabled:
+            return 0
+        csv_path = Path(path)
+        if not csv_path.is_file():
+            return 0
+
+        loaded = 0
+        with csv_path.open(newline="", encoding="utf-8") as file:
+            for row in csv.DictReader(file):
+                if row.get("status") not in {"success", "cached"}:
+                    continue
+                configuration: dict[str, Any] = {}
+                for name in self.parameter_names:
+                    raw_value = row.get(name, "")
+                    matches = [
+                        option
+                        for option in self.config.search_space[name]
+                        if str(option) == raw_value
+                        or (
+                            isinstance(option, (int, float))
+                            and float(option) == float(raw_value)
+                        )
+                    ]
+                    if len(matches) != 1:
+                        configuration = {}
+                        break
+                    configuration[name] = matches[0]
+                if not configuration:
+                    continue
+                result = EvaluationResult(
+                    status="success",
+                    fitness=float(row["fitness"]),
+                    train_accuracy=float(row["train_accuracy"]),
+                    validation_accuracy=float(row["validation_accuracy"]),
+                    validation_loss=float(row["validation_loss"]),
+                    best_epoch=int(row["best_epoch"]),
+                    training_time_seconds=float(row["training_time_seconds"]),
+                    semantic_warning=row.get("semantic_warning", ""),
+                    effective_learning_rate=(
+                        float(row["effective_learning_rate"])
+                        if row.get("effective_learning_rate")
+                        else None
+                    ),
+                    metadata={
+                        "actual_epochs_completed": (
+                            int(row["actual_epochs_completed"])
+                            if row.get("actual_epochs_completed")
+                            else None
+                        )
+                    },
+                )
+                cache_key = self._cache_key(configuration)
+                self.cache[cache_key] = result
+                self.evaluation_results[candidate_id(configuration)] = replace(result)
+                loaded += 1
+        return loaded
+
     def _probabilities(self) -> np.ndarray:
         probabilities = np.zeros_like(self.pheromone)
         for index, count in enumerate(self.option_counts):
