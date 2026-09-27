@@ -10,12 +10,6 @@ __pycache__/
 AGENTS.md
 docs/agents/
 
-# Local experiment outputs and trained models
-experiments/
-data/
-*.keras
-*.h5
-
 # Local environments and secrets
 .venv/
 venv/

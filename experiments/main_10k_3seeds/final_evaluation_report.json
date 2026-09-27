@@ -1,0 +1,112 @@
+{
+  "environment": {
+    "gpu_available": "true",
+    "gpu_devices": "/physical_device:GPU:0",
+    "gpu_utilization": "not_sampled",
+    "keras_version": "3.15.1",
+    "numpy_version": "2.5.3",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python_version": "3.13.15",
+    "tensorflow_version": "2.21.0"
+  },
+  "failure_reason": "",
+  "mode_results": [
+    {
+      "budget_name": "main",
+      "effective_ants": 20,
+      "effective_iterations": 5,
+      "effective_max_epochs": 5,
+      "mode": "paper_conventional",
+      "seed_results": [
+        {
+          "best_epoch": 5,
+          "effective_learning_rate": 0.0010000000474974513,
+          "model_path": "experiments/main_10k_3seeds/paper_conventional/main/paper_conventional-main-ants20-iterations5-epochs5-seed-42/best_model.keras",
+          "run_id": "paper_conventional-main-ants20-iterations5-epochs5-seed-42",
+          "runtime_seconds": 30.479642938000325,
+          "seed": 42,
+          "status": "success",
+          "test_accuracy": 0.9855999946594238,
+          "test_evaluation_performed": true,
+          "test_loss": 0.009617405943572521
+        },
+        {
+          "best_epoch": 5,
+          "effective_learning_rate": 0.0010000000474974513,
+          "model_path": "experiments/main_10k_3seeds/paper_conventional/main/paper_conventional-main-ants20-iterations5-epochs5-seed-43/best_model.keras",
+          "run_id": "paper_conventional-main-ants20-iterations5-epochs5-seed-43",
+          "runtime_seconds": 28.733716617003665,
+          "seed": 43,
+          "status": "success",
+          "test_accuracy": 0.983299970626831,
+          "test_evaluation_performed": true,
+          "test_loss": 0.011274452321231365
+        },
+        {
+          "best_epoch": 5,
+          "effective_learning_rate": 0.0010000000474974513,
+          "model_path": "experiments/main_10k_3seeds/paper_conventional/main/paper_conventional-main-ants20-iterations5-epochs5-seed-44/best_model.keras",
+          "run_id": "paper_conventional-main-ants20-iterations5-epochs5-seed-44",
+          "runtime_seconds": 29.844332928005315,
+          "seed": 44,
+          "status": "success",
+          "test_accuracy": 0.9866999983787537,
+          "test_evaluation_performed": true,
+          "test_loss": 0.008241415023803711
+        }
+      ],
+      "status": "success"
+    },
+    {
+      "budget_name": "main",
+      "effective_ants": 20,
+      "effective_iterations": 5,
+      "effective_max_epochs": 5,
+      "mode": "improved",
+      "seed_results": [
+        {
+          "best_epoch": 4,
+          "effective_learning_rate": 0.0010000000474974513,
+          "model_path": "experiments/main_10k_3seeds/improved/main/improved-main-ants20-iterations5-epochs5-seed-42/best_model.keras",
+          "run_id": "improved-main-ants20-iterations5-epochs5-seed-42",
+          "runtime_seconds": 17.881544176001626,
+          "seed": 42,
+          "status": "success",
+          "test_accuracy": 0.9627000093460083,
+          "test_evaluation_performed": true,
+          "test_loss": 0.11669936776161194
+        },
+        {
+          "best_epoch": 4,
+          "effective_learning_rate": 0.0010000000474974513,
+          "model_path": "experiments/main_10k_3seeds/improved/main/improved-main-ants20-iterations5-epochs5-seed-43/best_model.keras",
+          "run_id": "improved-main-ants20-iterations5-epochs5-seed-43",
+          "runtime_seconds": 19.091172996995738,
+          "seed": 43,
+          "status": "success",
+          "test_accuracy": 0.9764000177383423,
+          "test_evaluation_performed": true,
+          "test_loss": 0.07183561474084854
+        },
+        {
+          "best_epoch": 4,
+          "effective_learning_rate": 0.0010000000474974513,
+          "model_path": "experiments/main_10k_3seeds/improved/main/improved-main-ants20-iterations5-epochs5-seed-44/best_model.keras",
+          "run_id": "improved-main-ants20-iterations5-epochs5-seed-44",
+          "runtime_seconds": 17.082083977002185,
+          "seed": 44,
+          "status": "success",
+          "test_accuracy": 0.9761000275611877,
+          "test_evaluation_performed": true,
+          "test_loss": 0.07471612095832825
+        }
+      ],
+      "status": "success"
+    }
+  ],
+  "primary_runtime_seconds": 5628.452621121993,
+  "runtime_seconds": 143.16641008499573,
+  "status": "success",
+  "test_evaluations": 6,
+  "total_workflow_runtime_seconds": 5771.619031206988
+}

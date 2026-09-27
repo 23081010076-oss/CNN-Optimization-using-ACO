@@ -1,0 +1,30 @@
+{
+  "best_epoch": 4,
+  "dataset_split_id": "mnist-stratified-8000-2000-seed-2024",
+  "environment": {
+    "gpu_available": "true",
+    "gpu_devices": "/physical_device:GPU:0",
+    "gpu_utilization": "not_sampled",
+    "keras_version": "3.15.1",
+    "numpy_version": "2.5.3",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python_version": "3.13.15",
+    "tensorflow_version": "2.21.0"
+  },
+  "mode": "improved",
+  "run_id": "improved-main-ants20-iterations5-epochs5-seed-42",
+  "seed": 42,
+  "selected_configuration": {
+    "activation": "tanh",
+    "batch_size": 128,
+    "dense_units_1": 128,
+    "dense_units_2": 64,
+    "dropout_1": 0.3,
+    "dropout_2": 0.1,
+    "learning_rate": 0.001,
+    "optimizer": "rmsprop"
+  },
+  "test_size": 10000,
+  "test_used_for_selection": false,
+  "training_development_size": 10000
+}
